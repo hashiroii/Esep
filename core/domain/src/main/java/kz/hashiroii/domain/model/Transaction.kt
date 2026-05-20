@@ -3,10 +3,18 @@ package kz.hashiroii.domain.model
 import java.time.LocalDate
 
 data class Transaction(
-    val date: LocalDate, // change later
+    val id: Long,
+    val date: LocalDate,
     val amount: Double,
     val isIncome: Boolean,
-    val type: String,
-    val merchant: String,
-    val isBlocked: Boolean = false
+    val type: TransactionType,
+    val merchant: String
 )
+
+enum class TransactionType {
+    PURCHASES,
+    TRANSFERS,
+    REPLENISHMENT,
+    OTHERS,
+    UNKNOWN
+}

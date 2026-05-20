@@ -1,6 +1,7 @@
 package kz.hashiroii.data.parser
 
 import kz.hashiroii.domain.model.Transaction
+import kz.hashiroii.domain.model.TransactionType
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -15,10 +16,6 @@ fun parseTransaction(text: String): List<Transaction> {
     for (i in lines.indices) {
         val match = pattern.find(lines[i]) ?: continue
 
-        // block case
-        val nextLine = if (i + 1 < lines.size) lines[i + 1] else ""
-        val nextNextLine = if (i + 2 < lines.size) lines[i + 2] else ""
-
 
         val date = match.groupValues[1]
         val sign = match.groupValues[2]
@@ -26,19 +23,23 @@ fun parseTransaction(text: String): List<Transaction> {
             .replace(" ", "")
             .replace(",", ".")
             .toDouble()
-        val type = match.groupValues[4]
+        val type = when (match.groupValues[4].lowercase()) {
+            "purchases" -> TransactionType.PURCHASES
+            "transfers" -> TransactionType.TRANSFERS
+            "replenishment" -> TransactionType.REPLENISHMENT
+            "others" -> TransactionType.OTHERS
+            else -> TransactionType.UNKNOWN
+        }
         val merchant = match.groupValues[5].trim()
-        val isBlocked = nextLine.contains("blocked", ignoreCase = true)
-                || nextNextLine.contains("blocked", ignoreCase = true)
 
         result.add(
             Transaction(
+                id = 0,
                 date = LocalDate.parse(date, DateTimeFormatter.ofPattern("dd.MM.yy")),
                 isIncome = sign == "+",
                 amount = amount,
                 type = type,
                 merchant = merchant,
-                isBlocked = isBlocked
             )
         )
     }
