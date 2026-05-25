@@ -8,7 +8,7 @@ import java.time.LocalDate
 
 @Entity(tableName = "transactions")
 data class TransactionEntity(
-    @PrimaryKey val id: Long = 0,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,
     val amount: Double,
     val isIncome: Boolean,
@@ -18,6 +18,7 @@ data class TransactionEntity(
 
 fun TransactionEntity.toDomain(): Transaction {
     return Transaction(
+        id = id,
         date = date,
         amount = amount,
         isIncome = isIncome,
