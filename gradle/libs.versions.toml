@@ -14,6 +14,7 @@ material = "1.14.0"
 hilt = "2.55"
 room = "2.7.1"
 coroutines = "1.10.2"
+hiltNavigationCompose = "1.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -39,6 +40,9 @@ room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version = "2.0.27.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -23,3 +23,5 @@ rootProject.name = "Esep"
 include(":app")
 include(":core:data")
 include(":core:domain")
+include(":feature:home")
+include(":core:ui")
