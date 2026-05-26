@@ -8,7 +8,8 @@ data class Transaction(
     val amount: Double,
     val isIncome: Boolean,
     val type: TransactionType,
-    val merchant: String
+    val merchant: String,
+    val category: TransactionCategory = TransactionCategory.OTHER
 )
 
 enum class TransactionType {
