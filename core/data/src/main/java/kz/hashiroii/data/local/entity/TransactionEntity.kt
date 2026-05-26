@@ -3,6 +3,7 @@ package kz.hashiroii.data.local.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kz.hashiroii.domain.model.Transaction
+import kz.hashiroii.domain.model.TransactionCategory
 import kz.hashiroii.domain.model.TransactionType
 import java.time.LocalDate
 
@@ -14,6 +15,7 @@ data class TransactionEntity(
     val isIncome: Boolean,
     val type: TransactionType,
     val merchant: String,
+    val category: TransactionCategory = TransactionCategory.OTHER,
 )
 
 fun TransactionEntity.toDomain(): Transaction {
@@ -23,7 +25,8 @@ fun TransactionEntity.toDomain(): Transaction {
         amount = amount,
         isIncome = isIncome,
         type = type,
-        merchant = merchant
+        merchant = merchant,
+        category = category
     )
 }
 
@@ -33,6 +36,7 @@ fun Transaction.toEntity(): TransactionEntity {
         amount = amount,
         isIncome = isIncome,
         type = type,
-        merchant = merchant
+        merchant = merchant,
+        category = category
     )
 }

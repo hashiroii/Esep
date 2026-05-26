@@ -6,7 +6,7 @@ import androidx.room.TypeConverters
 import kz.hashiroii.data.local.dto.TransactionDao
 import kz.hashiroii.data.local.entity.TransactionEntity
 
-@Database(entities = [TransactionEntity::class], version = 2, exportSchema = true)
+@Database(entities = [TransactionEntity::class], version = 3, exportSchema = true)
 @TypeConverters(TransactionConverters::class)
 abstract class EsepDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
