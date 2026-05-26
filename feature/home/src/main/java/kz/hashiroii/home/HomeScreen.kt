@@ -22,11 +22,14 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kz.hashiroii.designsystem.theme.PreviewTheme
 import kz.hashiroii.domain.model.FinancialSummary
 import kz.hashiroii.domain.model.Period
 import kz.hashiroii.domain.model.PeriodType
 import kz.hashiroii.domain.model.TransactionCategory
-import kz.hashiroii.ui.theme.PreviewTheme
+import kz.hashiroii.ui.component.CategoryBreakdownSection
+import kz.hashiroii.ui.component.PeriodSelector
+import kz.hashiroii.ui.component.SummarySection
 
 @Composable
 fun HomeScreen(

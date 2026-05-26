@@ -19,7 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import kz.hashiroii.ui.theme.PreviewTheme
+import kz.hashiroii.designsystem.theme.PreviewTheme
 
 @Composable
 fun ImportCard(

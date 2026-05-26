@@ -23,9 +23,9 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import kz.hashiroii.domain.model.Transaction
 import kz.hashiroii.domain.model.TransactionType
-import kz.hashiroii.ui.theme.PreviewTheme
-import kz.hashiroii.ui.theme.expenseColor
-import kz.hashiroii.ui.theme.incomeColor
+import kz.hashiroii.designsystem.theme.PreviewTheme
+import kz.hashiroii.designsystem.theme.expenseColor
+import kz.hashiroii.designsystem.theme.incomeColor
 import java.time.LocalDate
 
 @Composable
