@@ -53,34 +53,89 @@ class KaspiStatementParser @Inject constructor() : PdfParser {
     }
 
     private fun categorize(merchant: String, type: TransactionType, isIncome: Boolean): TransactionCategory {
-        if (isIncome || type == TransactionType.REPLENISHMENT || type == TransactionType.TRANSFERS) {
-            return TransactionCategory.TRANSFERS
-        }
-        val m = merchant.lowercase()
+        if (isIncome
+            || type == TransactionType.REPLENISHMENT
+            || type == TransactionType.TRANSFERS
+            || type == TransactionType.OTHERS
+        ) return TransactionCategory.TRANSFERS
+
+        val m = merchant.lowercase().trim()
+
+        if (m == "cu") return TransactionCategory.GROCERIES
+
         return when {
-            m.anyOf("cafe", "coffee", "starbucks", "kfc", "mcdonald", "burger", "pizza", "sushi",
-                "dodo", "чайхана", "restaurant", "ресторан", "bar ", "бар", "grill") -> TransactionCategory.FOOD
+            m.anyOf(
+                // EN / transliteration
+                "cafe", "coffee", "kfc", "mcdonald", "burger", "pizza", "sushi",
+                "dodo", "restaurant", "grill", "doner", "shawarma", "bliny",
+                "wedrink", "we drink", "big doner", "masterbliny",
+                // RU Cyrillic
+                "кафе", "ресторан", "столовая", "шаурма", "шашлык", "донер",
+                "лагман", "чайхана", "чебуречн", "пельмен", "блин", "бар",
+                // Known Kazakhstan food brands / venues
+                "есахмет", "нурхан", "ширкин", "рауза", "тауекел"
+            ) -> TransactionCategory.FOOD
 
-            m.anyOf("magnum", "small", "ramstore", "metro", "spar", "sultan", "carrefour",
-                "globus", "supermarket", "продукт", "market") -> TransactionCategory.GROCERIES
+            m.anyOf(
+                // EN / transliteration (note: Cyrillic "маркет" ≠ ASCII "market" — both needed)
+                "magnum", "ramstore", "spar", "sultan", "carrefour",
+                "supermarket", "mini market", "minimarket",
+                "produkyt", "prodykty", "produkty", "super cena",
+                // RU Cyrillic — the critical ones missing before
+                "супермаркет", "маркет", "рынок", "продукт", "мини маркет",
+                // Known stores
+                "дария", "юбилейный", "galmart", "kok dala", "galmart"
+            ) -> TransactionCategory.GROCERIES
 
-            m.anyOf("taxi", "yandex", "uber", "bolt", "bus", "автобус", "metro ", "метро",
-                "subway", "такси", "transport") -> TransactionCategory.TRANSPORT
+            m.anyOf(
+                // EN
+                "taxi", "uber", "bolt", "bus", "subway", "transport",
+                "parking", "almaty-parking",
+                // RU Cyrillic
+                "такси", "автобус", "метро", "парковка", "паркинг",
+                "автомойка", "мойка", "для авто",
+                // Yandex transport products
+                "yandex", "яндекс", "indrive","индрайв"
+            ) -> TransactionCategory.TRANSPORT
 
-            m.anyOf("petrol", "gas station", "азс", "helios", "lukoil", "shell", "бензин",
-                "fuel", "заправ") -> TransactionCategory.FUEL
+            m.anyOf(
+                // EN
+                "petrol", "gas station", "fuel", "shell", "lukoil", "helios",
+                "royal petrol",
+                // RU Cyrillic
+                "бензин", "азс", "заправ"
+            ) -> TransactionCategory.FUEL
 
-            m.anyOf("pharmacy", "аптека", "apteka", "clinic", "hospital", "медицина",
-                "doctor", "health", "дента", "стоматол") -> TransactionCategory.HEALTH
+            m.anyOf(
+                // EN
+                "pharmacy", "clinic", "hospital", "health", "doctor", "dental", "medical",
+                // RU Cyrillic
+                "аптека", "клиника", "больниц", "медицин", "стоматол", "дента"
+            ) -> TransactionCategory.HEALTH
 
-            m.anyOf("cinema", "кино", "steam", "netflix", "spotify", "movie", "игр",
-                "game", "playstation", "billiard", "боулинг", "karaoke") -> TransactionCategory.ENTERTAINMENT
+            m.anyOf(
+                // EN / streaming / subscriptions
+                "youtube", "netflix", "spotify", "steam", "cinema", "movie",
+                "billiard", "bowling", "karaoke", "dance studio", "skillz",
+                "subscription", "claude.ai", "google",
+                // RU Cyrillic
+                "кино", "игр", "танц", "боулинг"
+            ) -> TransactionCategory.ENTERTAINMENT
 
-            m.anyOf("kcell", "beeline", "activ", "tele2", "internet", "комунал",
-                "communal", "electric", "коммун", "квартплат", "water ", "газ") -> TransactionCategory.UTILITIES
+            m.anyOf(
+                // Telecom / internet / utilities
+                "kcell", "beeline", "activ", "tele2", "meganet", "internet",
+                "communal", "electric", "utility",
+                // RU Cyrillic
+                "коммун", "квартплат", "интернет", "электр", "мобильн"
+            ) -> TransactionCategory.UTILITIES
 
-            m.anyOf("shop", "store", "zara", "h&m", "wildberries", "lamoda",
-                "магазин", "торгов", "одежд", "ювелир") -> TransactionCategory.SHOPPING
+            m.anyOf(
+                // EN
+                "shop", "store", "zara", "wildberries", "lamoda",
+                // RU Cyrillic — "маркет" is in GROCERIES above, but generic "магазин" here
+                "магазин", "торгов", "одежд", "ювелир"
+            ) -> TransactionCategory.SHOPPING
 
             else -> TransactionCategory.OTHER
         }
