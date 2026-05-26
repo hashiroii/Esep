@@ -7,16 +7,19 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kz.hashiroii.domain.model.FinancialSummary
+import kz.hashiroii.domain.model.Period
+import kz.hashiroii.domain.model.PeriodType
 import kz.hashiroii.domain.model.Transaction
-import kz.hashiroii.domain.model.TransactionType
+import kz.hashiroii.domain.model.TransactionCategory
+import kz.hashiroii.domain.parser.PdfTextExtractor
 import kz.hashiroii.domain.usecase.ParsePdfUseCase
-import kz.hashiroii.domain.usecase.PdfTextExtractor
 import kz.hashiroii.domain.usecase.transaction.DeleteTransactionByIdUseCase
 import kz.hashiroii.domain.usecase.transaction.GetAllTransactionsUseCase
-import kz.hashiroii.domain.usecase.transaction.GetTransactionsByIdUseCase
-import kz.hashiroii.domain.usecase.transaction.GetTransactionsByPeriodUseCase
-import kz.hashiroii.domain.usecase.transaction.GetTransactionsByTypeUseCase
 import kz.hashiroii.domain.usecase.transaction.SaveTransactionsUseCase
 import java.time.LocalDate
 import javax.inject.Inject
@@ -25,31 +28,40 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val pdfTextExtractor: PdfTextExtractor,
     private val parsePdfUseCase: ParsePdfUseCase,
-    private val saveTransactions: SaveTransactionsUseCase,
+    private val saveTransactionsUseCase: SaveTransactionsUseCase,
     private val getAllTransactionsUseCase: GetAllTransactionsUseCase,
-    private val getTransactionsByIdUseCase: GetTransactionsByIdUseCase,
-    private val getTransactionsByPeriodUseCase: GetTransactionsByPeriodUseCase,
-    private val getTransactionsByTypeUseCase: GetTransactionsByTypeUseCase,
     private val deleteTransactionByIdUseCase: DeleteTransactionByIdUseCase
 ) : ViewModel() {
+
+    private val _period = MutableStateFlow(Period.forType(PeriodType.MONTH))
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-        onLoadAllTransactions()
+        // combine() merges two flows into one. Every time _period changes OR Room
+        // emits a new transaction list, this block re-runs and rebuilds the UI state.
+        viewModelScope.launch {
+            combine(
+                _period,
+                getAllTransactionsUseCase()
+            ) { period, allTransactions ->
+                buildSuccess(period, allTransactions) as HomeUiState
+            }
+                .catch { e -> emit(HomeUiState.Error(e as? Exception ?: Exception(e.message))) }
+                .collect { _uiState.value = it }
+        }
     }
 
     fun onIntent(intent: HomeIntent) {
         when (intent) {
-            is HomeIntent.Retry -> onLoadAllTransactions()
             is HomeIntent.OnImportFile -> onImportFile(intent)
             is HomeIntent.OnSaveTransactions -> onSaveTransactions(intent.transactions)
             is HomeIntent.OnDeleteTransaction -> onDeleteTransaction(intent.id)
-            is HomeIntent.OnLoadAllTransactions -> onLoadAllTransactions()
-            is HomeIntent.OnLoadTransactionsById -> onLoadTransactionsById(intent.id)
-            is HomeIntent.OnLoadTransactionsByPeriod -> onLoadTransactionsByPeriod(intent.start, intent.end)
-            is HomeIntent.OnLoadTransactionsByType -> onLoadTransactionsByType(intent.type)
+            is HomeIntent.OnPeriodNext -> _period.update { it.next() }
+            is HomeIntent.OnPeriodPrevious -> _period.update { it.previous() }
+            is HomeIntent.OnPeriodTypeChanged -> _period.value = Period.forType(intent.type)
+            is HomeIntent.OnCustomPeriod -> _period.update { it.copy(start = intent.start, end = intent.end) }
         }
     }
 
@@ -59,8 +71,8 @@ class HomeViewModel @Inject constructor(
             try {
                 val text = pdfTextExtractor.extract(intent.uri)
                 val transactions = parsePdfUseCase(text)
-                saveTransactions(transactions)
-                onLoadAllTransactions()
+                saveTransactionsUseCase(transactions)
+                // No need to manually reload — combine() above will react to Room's new emission
             } catch (e: Exception) {
                 Log.e("HomeViewModel", "Import failed", e)
                 _uiState.value = HomeUiState.Error(e)
@@ -69,10 +81,9 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun onSaveTransactions(transactions: List<Transaction>) {
-        _uiState.value = HomeUiState.Loading
         viewModelScope.launch {
             try {
-                saveTransactions(transactions)
+                saveTransactionsUseCase(transactions)
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error(e)
             }
@@ -80,7 +91,6 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun onDeleteTransaction(id: Long) {
-        _uiState.value = HomeUiState.Loading
         viewModelScope.launch {
             try {
                 deleteTransactionByIdUseCase(id)
@@ -90,55 +100,24 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun onLoadAllTransactions() {
-        _uiState.value = HomeUiState.Loading
-        viewModelScope.launch {
-            try {
-                getAllTransactionsUseCase().collect { transactions ->
-                    _uiState.value = HomeUiState.Success(transactions = transactions)
-                }
-            } catch (e: Exception) {
-                _uiState.value = HomeUiState.Error(e)
-            }
+    private fun buildSuccess(period: Period, allTransactions: List<Transaction>): HomeUiState.Success {
+        val filtered = allTransactions.filter { tx ->
+            !tx.date.isBefore(period.start) && !tx.date.isAfter(period.end)
         }
-    }
+        val income = filtered.filter { it.isIncome }.sumOf { it.amount }
+        val expenses = filtered.filter { !it.isIncome }.sumOf { it.amount }
+        val breakdown = filtered
+            .filter { !it.isIncome }
+            .groupBy { it.category }
+            .mapValues { (_, txs) -> txs.sumOf { it.amount } }
+            .entries
+            .sortedByDescending { it.value }
+            .associate { it.key to it.value }
 
-    private fun onLoadTransactionsById(id: Long) {
-        _uiState.value = HomeUiState.Loading
-        viewModelScope.launch {
-            try {
-                getTransactionsByIdUseCase(id).collect { transactions ->
-                    _uiState.value = HomeUiState.Success(transactions = transactions)
-                }
-            } catch (e: Exception) {
-                _uiState.value = HomeUiState.Error(e)
-            }
-        }
-    }
-
-    private fun onLoadTransactionsByType(type: TransactionType) {
-        _uiState.value = HomeUiState.Loading
-        viewModelScope.launch {
-            try {
-                getTransactionsByTypeUseCase(type).collect { transactions ->
-                    _uiState.value = HomeUiState.Success(transactions = transactions)
-                }
-            } catch (e: Exception) {
-                _uiState.value = HomeUiState.Error(e)
-            }
-        }
-    }
-
-    private fun onLoadTransactionsByPeriod(start: LocalDate, end: LocalDate) {
-        _uiState.value = HomeUiState.Loading
-        viewModelScope.launch {
-            try {
-                getTransactionsByPeriodUseCase(start, end).collect { transactions ->
-                    _uiState.value = HomeUiState.Success(transactions = transactions)
-                }
-            } catch (e: Exception) {
-                _uiState.value = HomeUiState.Error(e)
-            }
-        }
+        return HomeUiState.Success(
+            period = period,
+            summary = FinancialSummary(income, expenses, breakdown),
+            transactions = filtered
+        )
     }
 }
