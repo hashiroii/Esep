@@ -6,8 +6,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -19,11 +22,11 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kz.hashiroii.domain.model.Transaction
-import kz.hashiroii.domain.model.TransactionType
-import kz.hashiroii.ui.component.transaction.TransactionCard
+import kz.hashiroii.domain.model.FinancialSummary
+import kz.hashiroii.domain.model.Period
+import kz.hashiroii.domain.model.PeriodType
+import kz.hashiroii.domain.model.TransactionCategory
 import kz.hashiroii.ui.theme.PreviewTheme
-import java.time.LocalDate
 
 @Composable
 fun HomeScreen(
@@ -41,6 +44,7 @@ fun HomeScreen(
     HomeScreen(
         state = state,
         onImportClick = { filePicker.launch(arrayOf("application/pdf")) },
+        onIntent = viewModel::onIntent,
         modifier = modifier
     )
 }
@@ -49,34 +53,74 @@ fun HomeScreen(
 internal fun HomeScreen(
     state: HomeUiState,
     onImportClick: () -> Unit,
+    onIntent: (HomeIntent) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold { paddingValues ->
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = onImportClick) {
+                Icon(imageVector = Icons.Filled.Add, contentDescription = "Import statement")
+            }
+        }
+    ) { paddingValues ->
         when (state) {
             is HomeUiState.Loading -> {
-                Box(modifier = modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator()
                 }
             }
+            
             is HomeUiState.Success -> {
                 LazyColumn(
                     modifier = modifier.fillMaxSize(),
                     contentPadding = paddingValues
                 ) {
                     item {
-                        ImportCard(
-                            onClick = onImportClick,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        SummarySection(
+                            summary = state.summary,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
-                    items(state.transactions) { transaction ->
-                        TransactionCard(
-                            transaction = transaction,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    item {
+                        PeriodSelector(
+                            period = state.period,
+                            onPrevious = { onIntent(HomeIntent.OnPeriodPrevious) },
+                            onNext = { onIntent(HomeIntent.OnPeriodNext) },
+                            onPeriodTypeSelected = { onIntent(HomeIntent.OnPeriodTypeChanged(it)) },
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
+                    }
+                    if (state.summary.categoryBreakdown.isNotEmpty()) {
+                        item {
+                            CategoryBreakdownSection(
+                                breakdown = state.summary.categoryBreakdown,
+                                totalExpenses = state.summary.totalExpenses,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
+                    if (state.transactions.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No transactions for this period.\nTap + to import a statement.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
+
             is HomeUiState.Error -> {
                 Box(
                     modifier = modifier.fillMaxSize(),
@@ -92,54 +136,22 @@ internal fun HomeScreen(
     }
 }
 
-private val previewTransactions = listOf(
-    Transaction(
-        id = 0,
-        date = LocalDate.of(2026, 5, 1),
-        amount = 150000.0,
-        isIncome = true,
-        type = TransactionType.REPLENISHMENT,
-        merchant = "Salary"
-    ),
-    Transaction(
-        id = 1,
-        date = LocalDate.of(2026, 5, 5),
-        amount = 3750.0,
-        isIncome = false,
-        type = TransactionType.PURCHASES,
-        merchant = "Magnum"
-    ),
-    Transaction(
-        id = 2,
-        date = LocalDate.of(2026, 5, 10),
-        amount = 10000.0,
-        isIncome = false,
-        type = TransactionType.TRANSFERS,
-        merchant = "Kaspi Transfer"
-    ),
-    Transaction(
-        id = 3,
-        date = LocalDate.of(2026, 5, 15),
-        amount = 1200.0,
-        isIncome = false,
-        type = TransactionType.PURCHASES,
-        merchant = "Starbucks"
-    ),
-    Transaction(
-        id = 4,
-        date = LocalDate.of(2026, 5, 20),
-        amount = 25000.0,
-        isIncome = true,
-        type = TransactionType.REPLENISHMENT,
-        merchant = "Freelance"
-    ),
+private val previewSummary = FinancialSummary(
+    totalIncome = 175000.0,
+    totalExpenses = 63750.0,
+    categoryBreakdown = mapOf(
+        TransactionCategory.GROCERIES to 25000.0,
+        TransactionCategory.FOOD to 15000.0,
+        TransactionCategory.ENTERTAINMENT to 15000.0,
+        TransactionCategory.TRANSPORT to 8750.0,
+    )
 )
 
 @PreviewLightDark
 @Composable
 private fun HomeScreenLoadingPreview() {
     PreviewTheme {
-        HomeScreen(state = HomeUiState.Loading, onImportClick = {})
+        HomeScreen(state = HomeUiState.Loading, onImportClick = {}, onIntent = {})
     }
 }
 
@@ -148,8 +160,29 @@ private fun HomeScreenLoadingPreview() {
 private fun HomeScreenSuccessPreview() {
     PreviewTheme {
         HomeScreen(
-            state = HomeUiState.Success(transactions = previewTransactions),
-            onImportClick = {}
+            state = HomeUiState.Success(
+                period = Period.forType(PeriodType.MONTH),
+                summary = previewSummary,
+                transactions = emptyList()
+            ),
+            onImportClick = {},
+            onIntent = {}
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun HomeScreenEmptyPreview() {
+    PreviewTheme {
+        HomeScreen(
+            state = HomeUiState.Success(
+                period = Period.forType(PeriodType.MONTH),
+                summary = FinancialSummary(0.0, 0.0, emptyMap()),
+                transactions = emptyList()
+            ),
+            onImportClick = {},
+            onIntent = {}
         )
     }
 }
@@ -160,7 +193,8 @@ private fun HomeScreenErrorPreview() {
     PreviewTheme {
         HomeScreen(
             state = HomeUiState.Error(Exception("Failed to load transactions")),
-            onImportClick = {}
+            onImportClick = {},
+            onIntent = {}
         )
     }
 }
