@@ -1,6 +1,7 @@
 package kz.hashiroii.domain.usecase
 
 import kz.hashiroii.domain.model.Transaction
+import kz.hashiroii.domain.parser.PdfParser
 import javax.inject.Inject
 
 class ParsePdfUseCase @Inject constructor(private val parser: PdfParser) {

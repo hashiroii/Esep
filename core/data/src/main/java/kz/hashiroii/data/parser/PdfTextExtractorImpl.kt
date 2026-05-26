@@ -8,7 +8,7 @@ import com.tom_roush.pdfbox.text.PDFTextStripper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kz.hashiroii.domain.usecase.PdfTextExtractor
+import kz.hashiroii.domain.parser.PdfTextExtractor
 import javax.inject.Inject
 
 class PdfTextExtractorImpl @Inject constructor(

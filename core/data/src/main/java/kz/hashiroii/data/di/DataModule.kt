@@ -14,8 +14,8 @@ import kz.hashiroii.data.parser.KaspiStatementParser
 import kz.hashiroii.data.parser.PdfTextExtractorImpl
 import kz.hashiroii.data.repository.TransactionRepositoryImpl
 import kz.hashiroii.domain.repository.TransactionRepository
-import kz.hashiroii.domain.usecase.PdfParser
-import kz.hashiroii.domain.usecase.PdfTextExtractor
+import kz.hashiroii.domain.parser.PdfParser
+import kz.hashiroii.domain.parser.PdfTextExtractor
 import javax.inject.Singleton
 
 @Module

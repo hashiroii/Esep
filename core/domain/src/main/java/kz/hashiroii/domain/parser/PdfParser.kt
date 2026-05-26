@@ -1,4 +1,4 @@
-package kz.hashiroii.domain.usecase
+package kz.hashiroii.domain.parser
 
 import kz.hashiroii.domain.model.Transaction
 
