@@ -19,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import kz.hashiroii.designsystem.theme.PreviewTheme
 
 @Composable
 fun ImportCard(
@@ -66,10 +65,9 @@ fun ImportCard(
 @PreviewLightDark
 @Composable
 private fun ImportCardPreview() {
-    PreviewTheme {
+    MaterialTheme {
         ImportCard(
             onClick = {},
-            modifier = Modifier.padding(16.dp)
-        )
+            modifier = Modifier.padding(16.dp))
     }
 }
